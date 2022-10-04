@@ -2,20 +2,18 @@
 
 <head>
 	<title>Flavor of the Day</title>
+	<style type="text/css">
+		body { font-family: Roboto,sans-serif; }
+		.flavor { text-align:center; }
+	</style>	
 </head>
 <body>
     <h1 id='heading'>Flavor of the Day near</h1>
-
-    <table id='table'>
-        <tr>
-            <th>Store</th>
-            <th>Address</th>
-            <th>Flavor</th>
-            <th>Image</th>
-        </tr>
+    <table id="table"></table>
 
         <script>
             document.addEventListener("DOMContentLoaded", function(event) { 
+                const dayOfWeekName = new Date().toLocaleString('default', {weekday: 'long'});		    
                 let zip = (window.location.hash || '#53593').substring(1);
                 document.title += " " + zip;
                 document.querySelector('#heading').innerHTML += " " + zip;
@@ -24,19 +22,22 @@
                     return response.json();
                 })
                 .then(function (json){
+			let fl = '';
                         json.Collection.Locations.forEach(function(loc) 
                         {
-                            let fl = '';
+                            let addr = loc.Address + ' ' + loc.City + ', ' + loc.State;
                             fl += '<tr>';
-                            fl += '<td>' + loc.Name + '</td>';
-                            fl += '<td>' + loc.Address + ', ' + loc.City + '</td>';
-                            fl += '<td>' + loc.FlavorDay + '</td>';
-                            fl += '<td><img src="' + loc.FlavorImageUrl + '"></td>';
+                            fl += '<td>';
+			    fl += loc.Name;
+                            fl += '<br />Closes today at ' + loc[dayOfWeekName + 'Close'];
+                            fl += '<br /><a href="https://www.google.com/maps/dir//' + addr + '">' + addr + '</a>';				
+                            fl += '</td>';
+                            fl += '<td class="flavor"><img src="' + loc.FlavorImageUrl + '"><br />' + loc.FlavorDay + '</td>';
                             fl += '</tr>';
-                            let content = document.querySelector('#table').innerHTML;
-                            content += fl;
-                            document.querySelector('#table').innerHTML = content;
                         });
+                        let content = document.querySelector('#table').innerHTML;
+                        content += fl;
+                        document.querySelector('#table').innerHTML = content;			
                     })});
         </script>
 </body>
