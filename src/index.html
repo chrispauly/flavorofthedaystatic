@@ -53,7 +53,7 @@
                     });
 		    
                 // Run again tomorrow at 6am
-                setTimeout(fotdFetch, nextRunTime());
+                setTimeout(function() { window.location.reload(); }, nextRunTime());
 	    }
 		
             document.addEventListener("DOMContentLoaded", function(event) { 
