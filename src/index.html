@@ -5,14 +5,25 @@
 	<style type="text/css">
 		body { font-family: Roboto,sans-serif; }
 		.flavor { text-align:center; }
+		#fetchtime { font-style:italic; font-size:.6em; }
 	</style>	
 </head>
 <body>
     <h1 id='heading'>Flavor of the Day near</h1>
+    <div id="fetchtime"></div>
     <table id="table"></table>
 
         <script>
-            document.addEventListener("DOMContentLoaded", function(event) { 
+            // Return milliseconds until next 6am
+            function nextRunTime() {
+               var now = new Date();
+               var isEarly = (now.getHours() < 6);
+               var next6am = new Date(now.getFullYear(), now.getMonth(), now.getDate() + (isEarly ? 0 : 1), 6);
+               // console.log(next6am);
+               return next6am.getTime() - Date.now();
+            }
+		
+            function fotdFetch() {
                 const dayOfWeekName = new Date().toLocaleString('default', {weekday: 'long'});		    
                 let zip = (window.location.hash || '#53593').substring(1);
                 document.title += " " + zip;
@@ -22,6 +33,7 @@
                     return response.json();
                 })
                 .then(function (json){
+			document.querySelector('#fetchtime').innerHTML = "Last updated: " + Date().toString();
 			let fl = '';
                         json.Collection.Locations.forEach(function(loc) 
                         {
@@ -38,7 +50,15 @@
                         let content = document.querySelector('#table').innerHTML;
                         content += fl;
                         document.querySelector('#table').innerHTML = content;			
-                    })});
+                    });
+		    
+                // Run again tomorrow at 6am
+                setTimeout(fotdFetch, nextRunTime());
+	    }
+		
+            document.addEventListener("DOMContentLoaded", function(event) { 
+                fotdFetch();
+	    });
         </script>
 </body>
 </html>
