@@ -33,7 +33,7 @@
                     return response.json();
                 })
                 .then(function (json){
-			document.querySelector('#fetchtime').innerHTML = "Last updated: " + Date().toString();
+			document.querySelector('#fetchtime').innerHTML = "Last updated: " + (new Date()).toLocaleString();
 			let fl = '';
                         json.Collection.Locations.forEach(function(loc) 
                         {
