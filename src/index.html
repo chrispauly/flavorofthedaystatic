@@ -14,56 +14,88 @@
 	<meta charset="utf-8" name="viewport" content= "width=device-width, initial-scale=1.0">
 </head>
 <body>
-    <h1 id='heading'>Flavor of the Day near</h1>
+    <h1>Flavor of the Day near <div contenteditable="true" id='headingzip'></div></h1>
     <div id="fetchtime"></div>
     <table id="table"></table>
 
-        <script>
-            // Return milliseconds until next 6am
-            function nextRunTime() {
-               var now = new Date();
-               var isEarly = (now.getHours() < 6);
-               var next6am = new Date(now.getFullYear(), now.getMonth(), now.getDate() + (isEarly ? 0 : 1), 6);
-               // console.log(next6am);
-               return next6am.getTime() - Date.now();
-            }
+    <script>
+	document.body.addEventListener("click",
+	function(evt) {
+	  if (evt.target.id != 'headingzip') {
+	    validateZip();
+	  } else {
+	    window.getSelection().selectAllChildren(evt.target); // Select all the text
+	  }
+	});
+
+	document.body.addEventListener("keyup",
+	function(event) {
+	  if (event.keyCode === 13) {
+	    event.preventDefault();
+	    validateZip();
+	  }
+	});
+
+	function validateZip() {
+	  let newZip = document.querySelector('#headingzip').innerHTML.trim();
+	  const oldZip = (window.location.hash || '#53593').substring(1);
+	  const zipTest = new RegExp(/[\d]{5,5}/);
 		
-            function fotdFetch() {
-                const dayOfWeekName = new Date().toLocaleString('default', {weekday: 'long'});		    
-                let zip = (window.location.hash || '#53593').substring(1);
-                document.title += " " + zip;
-                document.querySelector('#heading').innerHTML += " " + zip;
-                fetch('https://www.culvers.com/api/locate/address/json?address=' + zip)
-                .then(function (response){
-                    return response.json();
-                })
-                .then(function (json){
-			document.querySelector('#fetchtime').innerHTML = "Last updated: " + (new Date()).toLocaleString();
-			let fl = '';
-                        json.Collection.Locations.forEach(function(loc) 
-                        {
-                            let addr = loc.Address + ' ' + loc.City + ', ' + loc.State;
-                            fl += '<tr>';
-                            fl += '<td>';
-			    fl += loc.Name;
-                            fl += '<br />Closes today at ' + loc[dayOfWeekName + 'Close'];
-                            fl += '<br /><a href="https://www.google.com/maps/dir//' + addr + '">' + addr + '</a>';				
-                            fl += '</td>';
-                            fl += '<td class="flavor"><img src="' + loc.FlavorImageUrl + '"><br />' + loc.FlavorDay + '</td>';
-                            fl += '</tr>';
-                        });
-                        let content = document.querySelector('#table').innerHTML;
-                        content += fl;
-                        document.querySelector('#table').innerHTML = content;			
-                    });
-		    
-                // Run again tomorrow at 6am
-                setTimeout(function() { window.location.reload(); }, nextRunTime());
-	    }
-		
-            document.addEventListener("DOMContentLoaded", function(event) { 
-                fotdFetch();
+	  if (zipTest.test(newZip)) { newZip = zipTest.exec(newZip)[0]; }
+
+	  if (newZip != oldZip) {
+	    newZip = zipTest.exec(newZip)[0];
+	    window.location = window.location.href.replace(window.location.hash, '') + '#' + newZip; // Needed to use href value to allow testing a file path html
+	    window.location.reload();
+	  } else {
+	    document.querySelector('#headingzip').innerHTML = oldZip;
+	  }
+	}
+
+	// Return milliseconds until next 6am
+	function nextRunTime() {
+	  var now = new Date();
+	  var isEarly = (now.getHours() < 6);
+	  var next6am = new Date(now.getFullYear(), now.getMonth(), now.getDate() + (isEarly ? 0 : 1), 6);
+	  // console.log(next6am);
+	  return next6am.getTime() - Date.now();
+	}
+
+	function fotdFetch() {
+	  const dayOfWeekName = new Date().toLocaleString('default', { weekday: 'long' });
+	  const zip = (window.location.hash || '#53593').substring(1);
+	  document.title += " " + zip;
+	  document.querySelector('#headingzip').innerHTML += " " + zip;
+	  fetch('https://www.culvers.com/api/locate/address/json?address=' + zip).then(function(response) {
+	    return response.json();
+	  }).then(function(json) {
+	    document.querySelector('#fetchtime').innerHTML = "Last updated: " + (new Date()).toLocaleString();
+	    let fl = '';
+	    json.Collection.Locations.forEach(function(loc) {
+	      let addr = loc.Address + ' ' + loc.City + ', ' + loc.State;
+	      fl += '<tr>';
+	      fl += '<td>';
+	      fl += loc.Name;
+	      fl += '<br />Closes today at ' + loc[dayOfWeekName + 'Close'];
+	      fl += '<br /><a href="https://www.google.com/maps/dir//' + addr + '">' + addr + '</a>';
+	      fl += '</td>';
+	      fl += '<td class="flavor"><img src="' + loc.FlavorImageUrl + '"><br />' + loc.FlavorDay + '</td>';
+	      fl += '</tr>';
 	    });
-        </script>
+	    let content = document.querySelector('#table').innerHTML;
+	    content += fl;
+	    document.querySelector('#table').innerHTML = content;
+	  });
+
+	  // Run again tomorrow at 6am
+	  setTimeout(function() { window.location.reload(); }, nextRunTime());
+	}
+
+	document.addEventListener("DOMContentLoaded",
+	function(event) {
+	  fotdFetch();
+	});
+    </script>
+
 </body>
 </html>
