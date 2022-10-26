@@ -36,6 +36,24 @@
 	  }
 	});
 
+	function closedMessage(closingTime) {
+    	const parsedTime = /^(?<HR>\d{1,2}):(?<MIN>\d{1,2}) (?<AMPM>AM|PM)$/.exec(closingTime);
+
+		if(parsedTime) {
+			const now = new Date();
+			const nowTime = String(now.getHours()).padStart(2,'0') + ':' + now.getMinutes();
+
+			var iCloseHour = parseInt(parsedTime.groups['HR']);
+			if(parsedTime.groups['AMPM']==='PM') iCloseHour += 12;
+			const closeTime = String(iCloseHour).padStart(2,'0') + ':' + parsedTime.groups['MIN'];
+
+			if(nowTime > closeTime) return 'Closed today at ' + closingTime;
+
+			return 'Closes today at ' + closingTime;
+		}
+		return '';
+	}
+
 	function validateZip() {
 	  let newZip = document.querySelector('#headingzip').innerHTML.trim();
 	  const oldZip = (window.location.hash || '#53593').substring(1);
@@ -76,7 +94,7 @@
 	      fl += '<tr>';
 	      fl += '<td>';
 	      fl += loc.Name;
-	      fl += '<br />Closes today at ' + loc[dayOfWeekName + 'Close'];
+	      fl += '<br /> ' + closedMessage(loc[dayOfWeekName + 'Close']);
 	      fl += '<br /><a href="https://www.google.com/maps/dir//' + addr + '">' + addr + '</a>';
 	      fl += '</td>';
 	      fl += '<td class="flavor"><img src="' + loc.FlavorImageUrl + '"><br />' + loc.FlavorDay + '</td>';
