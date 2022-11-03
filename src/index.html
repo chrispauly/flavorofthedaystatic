@@ -115,15 +115,20 @@
         document.querySelector('#fetchtime').innerHTML = "Last updated: " + (new Date()).toLocaleString();
         let fl = '';
         json.Collection.Locations.forEach(function(loc) {
-          let addr = loc.Address + ' ' + loc.City + ', ' + loc.State;
-          fl += '<tr>';
-          fl += '<td>';
-          fl += loc.Name;
-          fl += '<br /> ' + closedMessage(loc[dayOfWeekName + 'Close']);
-          fl += '<br /><a href="https://www.google.com/maps/dir//' + addr + '">' + addr + '</a>';
-          fl += '</td>';
-          fl += '<td class="flavor"><img src="' + loc.FlavorImageUrl + '"><br />' + loc.FlavorDay + '</td>';
-          fl += '</tr>';
+	  if(!loc.FlavorDay || loc.FlavorDay === '') {
+            console.log('No FotD so skipping location: ' + JSON.stringify(loc));
+	  }
+          else {
+            let addr = loc.Address + ' ' + loc.City + ', ' + loc.State;
+            fl += '<tr>';
+            fl += '<td>';
+            fl += loc.Name;
+            fl += '<br /> ' + closedMessage(loc[dayOfWeekName + 'Close']);
+            fl += '<br /><a href="https://www.google.com/maps/dir//' + addr + '">' + addr + '</a>';
+            fl += '</td>';
+            fl += '<td class="flavor"><img src="' + loc.FlavorImageUrl + '"><br />' + loc.FlavorDay + '</td>';
+            fl += '</tr>';
+	  }
         });
         document.querySelector('#table').innerHTML = fl;
       });
