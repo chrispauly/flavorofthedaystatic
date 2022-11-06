@@ -58,9 +58,14 @@
 	}
 
 	function loadGeolocation() {
-		if (navigator.geolocation) {    
-			navigator.geolocation.getCurrentPosition(fotdFetch);
+		if (navigator.geolocation) {
+			document.body.style.cursor = 'wait';
+			navigator.geolocation.getCurrentPosition(fotdFetch, removeWaitCursor);
    		} 
+	}
+	    
+	function removeWaitCursor() {
+	   document.body.style.cursor = 'default';
 	}
 
 	function validateZip() {
@@ -68,7 +73,7 @@
 	  const oldZip = (window.location.hash || '#53593').substring(1);
 	  const zipTest = new RegExp(/[\d]{5,5}/);
 	
-      if(newZip == "your current location") return;
+          if(newZip == "your current location") return;
 	  if (zipTest.test(newZip)) { newZip = zipTest.exec(newZip)[0]; }
 
 	  if (newZip != oldZip) {
@@ -89,7 +94,8 @@
 	  return next6am.getTime() - Date.now();
 	}
 
-	function fotdFetch(gpsposition) {
+      function fotdFetch(gpsposition) {
+      document.body.style.cursor = 'wait';
       const fotdTitle = "Flavor of the Day";
       const dayOfWeekName = new Date().toLocaleString('default', { weekday: 'long' });
       let fetchUrl = '';
@@ -131,6 +137,9 @@
 	  }
         });
         document.querySelector('#table').innerHTML = fl;
+	removeWaitCursor();
+      }).catch(() => {
+        removeWaitCursor();
       });
 
       // Run again tomorrow at 6am
