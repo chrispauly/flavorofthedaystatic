@@ -112,7 +112,7 @@
         const zip = (window.location.hash || '#53593').substring(1);
         document.querySelector('#headingzip').innerHTML = zip;
         document.title = fotdTitle + " " + zip;
-        fetchUrl = 'https://www.culvers.com/api/locate/address/json?cuttoff=100&limit=1000&searchRadius=25&address=' + zip;
+        fetchUrl = 'https://www.culvers.com/api/locate/address/json?cuttoff=100&limit=1000&searchRadius=70&address=' + zip;
       }
 
       fetch(fetchUrl).then(function(response) {
