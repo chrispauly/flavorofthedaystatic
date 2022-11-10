@@ -132,7 +132,7 @@
             fl += '<br /> ' + closedMessage(loc[dayOfWeekName + 'Close']);
             fl += '<br /><a href="https://www.google.com/maps/dir//' + addr + '">' + addr + '</a>';
             fl += '</td>';
-            fl += '<td class="flavor"><img src="' + loc.FlavorImageUrl + '"><br />' + loc.FlavorDay + '</td>';
+            fl += '<td class="flavor"><a href="' + loc.Url + '#view-calendar" title="Click to see future flavors"><img src="' + loc.FlavorImageUrl + '"><br />' + loc.FlavorDay + '</a></td>';	
             fl += '</tr>';
 	  }
         });
