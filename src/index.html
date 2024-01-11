@@ -16,7 +16,6 @@
 <body>
     <h1>Flavor of the Day near
 		<div contenteditable="true" id='headingzip'></div>
-		<img id="gpsbutton" src="653247_compass_arrow_direction_location_navigate_icon.png" style="border: double;" height="23" width="23" title="Search near me" /> 
 	</h1>
     <div id="fetchtime"></div>
     <table id="table"></table>
@@ -24,7 +23,7 @@
     <script>
 	document.body.addEventListener("click",
 	function(evt) {
-	  if (evt.target.id != 'headingzip' && evt.target.id != 'gpsbutton') {
+	  if (evt.target.id != 'headingzip') {
 	    validateZip();
 	  } else {
 	    window.getSelection().selectAllChildren(evt.target); // Select all the text
@@ -70,19 +69,8 @@
 
 	function validateZip() {
 	  let newZip = document.querySelector('#headingzip').innerHTML.trim();
-	  const oldZip = (window.location.hash || '#53593').substring(1);
-	  const zipTest = new RegExp(/[\d]{5,5}/);
-	
-          if(newZip == "your current location") return;
-	  if (zipTest.test(newZip)) { newZip = zipTest.exec(newZip)[0]; }
-
-	  if (newZip != oldZip) {
-	    newZip = zipTest.exec(newZip)[0];
-	    window.location = window.location.href.replace(window.location.hash, '') + '#' + newZip; // Needed to use href value to allow testing a file path html
-	    window.location.reload();
-	  } else {
-	    document.querySelector('#headingzip').innerHTML = oldZip;
-	  }
+	  if(newZip !== "your current location") 
+	  	document.querySelector('#headingzip').innerHTML = "your current location";
 	}
 
 	// Return milliseconds until next 6am
@@ -104,35 +92,31 @@
       if(gpsposition) {
         document.querySelector('#headingzip').innerHTML = "your current location";
 		document.title = fotdTitle;
-		window.history.pushState({},"","/");
-        fetchUrl = 'https://www.culvers.com/api/locate/latlong/json?latitude=' + gpsposition.coords.latitude + '&longitude=' + gpsposition.coords.longitude + '&proximitySearchMethod=drivetime&cuttoff=100&limit=1000&searchRadius=25';
-      }
-      // Handle zipcode logic 
-      else {
-        const zip = (window.location.hash || '#53593').substring(1);
-        document.querySelector('#headingzip').innerHTML = zip;
-        document.title = fotdTitle + " " + zip;
-        fetchUrl = 'https://www.culvers.com/api/locate/address/json?cuttoff=100&limit=1000&searchRadius=70&address=' + zip;
+		//window.history.pushState({},"","/");
+		fetchUrl = 'https://www.culvers.com/api/restaurants/getLocations?lat=' + gpsposition.coords.latitude + '&long=' + gpsposition.coords.longitude + '&limit=9';
       }
 
-      fetch(fetchUrl).then(function(response) {
+	  const newFetchUrl = 'https://corsproxy.io/?' + encodeURIComponent(fetchUrl);
+
+      fetch(newFetchUrl).then(function(response) {
         return response.json();
       }).then(function(json) {
+		console.log(json);
         document.querySelector('#fetchtime').innerHTML = "Last updated: " + (new Date()).toLocaleString();
         let fl = '';
-        json.Collection.Locations.forEach(function(loc) {
-	  if(!loc.FlavorDay || loc.FlavorDay === '') {
+        json.data.geofences.forEach(function(loc) {
+		  if(!loc.metadata.flavorOfDayName || loc.metadata.flavorOfDayName === '') {
             console.log('No FotD so skipping location: ' + JSON.stringify(loc));
-	  }
+	      }
           else {
-            let addr = loc.Address + ' ' + loc.City + ', ' + loc.State;
+			let addr = loc.metadata.street + ' ' + loc.metadata.city + ', ' + loc.metadata.state;
             fl += '<tr>';
             fl += '<td>';
-            fl += loc.Name;
-            fl += '<br /> ' + closedMessage(loc[dayOfWeekName + 'Close']);
+            fl += loc.description;
+			fl += '<br /> ' + closedMessage(JSON.parse(loc.metadata.driveThruHours)[dayOfWeekName.substring(0,2) + 'C']);
             fl += '<br /><a href="https://www.google.com/maps/dir//' + addr + '">' + addr + '</a>';
             fl += '</td>';
-            fl += '<td class="flavor"><a href="' + loc.Url + '#view-calendar" title="Click to see future flavors"><img src="' + loc.FlavorImageUrl + '"><br />' + loc.FlavorDay + '</a></td>';	
+            fl += '<td class="flavor"><a href="https://www.culvers.com/restaurants/' + loc.metadata.slug + '#view-calendar" title="Click to see future flavors"><img src="https://cdn.culvers.com/menu-item-detail/' + loc.metadata.flavorOfDaySlug + '" width="177"><br />' + loc.metadata.flavorOfDayName + '</a></td>';	
             fl += '</tr>';
 	  }
         });
@@ -145,19 +129,7 @@
       // Run again tomorrow at 6am
       setTimeout(function() { window.location.reload(); }, nextRunTime());
     }
-
-	document.addEventListener("DOMContentLoaded",
-	function(event) {
-	  const gpsBttn = document.querySelector('#gpsbutton');
-	  if (!!!navigator.geolocation) {
-        gpsBttn.style.display = 'none';
-	  } 
-	  else {
-		gpsBttn.addEventListener("click", loadGeolocation, false);
-	  }       
-
-	  fotdFetch();
-	});
+	loadGeolocation();
     </script>
 
 </body>
