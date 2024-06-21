@@ -93,7 +93,7 @@
         document.querySelector('#headingzip').innerHTML = "your current location";
 		document.title = fotdTitle;
 		//window.history.pushState({},"","/");
-		fetchUrl = 'https://www.culvers.com/api/restaurants/getLocations?lat=' + gpsposition.coords.latitude + '&long=' + gpsposition.coords.longitude + '&limit=9';
+		fetchUrl = 'https://www.culvers.com/api/locator/getLocations?lat=' + gpsposition.coords.latitude + '&long=' + gpsposition.coords.longitude + '&radius=40233&limit=10';
       }
 
 	  const newFetchUrl = 'https://corsproxy.io/?' + encodeURIComponent(fetchUrl);
