@@ -3,157 +3,135 @@
 <head>
 	<title>Flavor of the Day</title>
 	<style type="text/css">
-		body { font-family: Roboto,sans-serif; }
-		.flavor { text-align:center; }
-		#fetchtime { font-style:italic; font-size:.6em; }
+		body {
+			font-family: Roboto, sans-serif;
+		}
+
+		.flavor {
+			text-align: center;
+		}
+
+		#fetchtime {
+			font-style: italic;
+			font-size: .6em;
+		}
 	</style>
 	<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 	<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
 	<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
-	<link rel="manifest" href="/site.webmanifest">	
-	<meta charset="utf-8" name="viewport" content= "width=device-width, initial-scale=1.0">
+	<link rel="manifest" href="/site.webmanifest">
+	<meta charset="utf-8" name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
+
 <body>
-    <h1>Flavor of the Day near
-		<div contenteditable="true" id='headingzip'></div>
-		<img id="gpsbutton" src="653247_compass_arrow_direction_location_navigate_icon.png" style="border: double;" height="23" width="23" title="Search near me" /> 
+	<h1>Flavor of the Day near
+		<div id='headingzip'>your current location</div>
 	</h1>
-    <div id="fetchtime"></div>
-    <table id="table"></table>
+	<div id="fetchtime"></div>
+	<table id="table"></table>
 
-    <script>
-	document.body.addEventListener("click",
-	function(evt) {
-	  if (evt.target.id != 'headingzip' && evt.target.id != 'gpsbutton') {
-	    validateZip();
-	  } else {
-	    window.getSelection().selectAllChildren(evt.target); // Select all the text
-	  }
-	});
+	<script>
 
-	document.body.addEventListener("keyup",
-	function(event) {
-	  if (event.keyCode === 13) {
-	    event.preventDefault();
-	    validateZip();
-	  }
-	});
+		function closedMessage(closingTime) {
+			const parsedTime = /^(?<HR>\d{1,2}):(?<MIN>\d{1,2}) (?<AMPM>AM|PM)$/.exec(closingTime);
 
-	function closedMessage(closingTime) {
-    	const parsedTime = /^(?<HR>\d{1,2}):(?<MIN>\d{1,2}) (?<AMPM>AM|PM)$/.exec(closingTime);
+			if (parsedTime) {
+				const now = new Date();
+				const nowTime = String(now.getHours()).padStart(2, '0') + ':' + now.getMinutes();
 
-		if(parsedTime) {
-			const now = new Date();
-			const nowTime = String(now.getHours()).padStart(2,'0') + ':' + now.getMinutes();
+				var iCloseHour = parseInt(parsedTime.groups['HR']);
+				if (parsedTime.groups['AMPM'] === 'PM') iCloseHour += 12;
+				const closeTime = String(iCloseHour).padStart(2, '0') + ':' + parsedTime.groups['MIN'];
 
-			var iCloseHour = parseInt(parsedTime.groups['HR']);
-			if(parsedTime.groups['AMPM']==='PM') iCloseHour += 12;
-			const closeTime = String(iCloseHour).padStart(2,'0') + ':' + parsedTime.groups['MIN'];
+				if (nowTime > closeTime) return 'Closed today at ' + closingTime;
 
-			if(nowTime > closeTime) return 'Closed today at ' + closingTime;
-
-			return 'Closes today at ' + closingTime;
+				return 'Closes today at ' + closingTime;
+			}
+			return '';
 		}
-		return '';
-	}
 
-	function loadGeolocation() {
-		if (navigator.geolocation) {    
-			navigator.geolocation.getCurrentPosition(fotdFetch, 
-								    function(error) {
-									if (error.code == error.PERMISSION_DENIED) {
-									  alert('Please enable location permissions');
-									}
-								    },
-								    {
-									maximumAge: Infinity,
-									timeout:0
-								    });
-   		} 
-	}
+		function loadGeolocation() {
+			if (navigator.geolocation) {
+				document.body.style.cursor = 'wait';
+				navigator.geolocation.getCurrentPosition(fotdFetch, removeWaitCursor);
+			}
+		}
 
-	function validateZip() {
-	  let newZip = document.querySelector('#headingzip').innerHTML.trim();
-	  const oldZip = (window.location.hash || '#53593').substring(1);
-	  const zipTest = new RegExp(/[\d]{5,5}/);
-	
-      if(newZip == "your current location") return;
-	  if (zipTest.test(newZip)) { newZip = zipTest.exec(newZip)[0]; }
+		async function getCityFromCoords(lat, lon) {
+			try {
+				const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=10&addressdetails=1`);
+				const data = await response.json();
+				return data.address.city || data.address.town || data.address.village || 'Unknown location';
+			} catch (e) {
+				return 'your current location';
+			}
+		}
 
-	  if (newZip != oldZip) {
-	    newZip = zipTest.exec(newZip)[0];
-	    window.location = window.location.href.replace(window.location.hash, '') + '#' + newZip; // Needed to use href value to allow testing a file path html
-	    window.location.reload();
-	  } else {
-	    document.querySelector('#headingzip').innerHTML = oldZip;
-	  }
-	}
+		function removeWaitCursor() {
+			document.body.style.cursor = 'default';
+		}
 
-	// Return milliseconds until next 6am
-	function nextRunTime() {
-	  var now = new Date();
-	  var isEarly = (now.getHours() < 6);
-	  var next6am = new Date(now.getFullYear(), now.getMonth(), now.getDate() + (isEarly ? 0 : 1), 6);
-	  // console.log(next6am);
-	  return next6am.getTime() - Date.now();
-	}
+		// Return milliseconds until next 6am
+		function nextRunTime() {
+			var now = new Date();
+			var isEarly = (now.getHours() < 6);
+			var next6am = new Date(now.getFullYear(), now.getMonth(), now.getDate() + (isEarly ? 0 : 1), 6);
+			// console.log(next6am);
+			return next6am.getTime() - Date.now();
+		}
 
-	function fotdFetch(gpsposition) {
-      const fotdTitle = "Flavor of the Day";
-      const dayOfWeekName = new Date().toLocaleString('default', { weekday: 'long' });
-      let fetchUrl = '';
+		async function fotdFetch(gpsposition) {
+			document.body.style.cursor = 'wait';
+			const fotdTitle = "Flavor of the Day";
+			const dayOfWeekName = new Date().toLocaleString('default', { weekday: 'long' });
+			let fetchUrl = '';
 
-      // Handle current location logic
-      if(gpsposition) {
-        document.querySelector('#headingzip').innerHTML = "your current location";
-		document.title = fotdTitle;
-		window.history.pushState({},"","/");
-        fetchUrl = 'https://www.culvers.com/api/locate/latlong/json?latitude=' + gpsposition.coords.latitude + '&longitude=' + gpsposition.coords.longitude + '&proximitySearchMethod=drivetime&cuttoff=100&limit=1000&searchRadius=25';
-      }
-      // Handle zipcode logic 
-      else {
-        const zip = (window.location.hash || '#53593').substring(1);
-        document.querySelector('#headingzip').innerHTML = zip;
-        document.title = fotdTitle + " " + zip;
-        fetchUrl = 'https://www.culvers.com/api/locate/address/json?cuttoff=100&limit=1000&searchRadius=25&address=' + zip;
-      }
+			// Handle current location logic
+			if (gpsposition) {
+				// In your geolocation success callback:
+                const city = await getCityFromCoords(position.coords.latitude, position.coords.longitude);
+                document.getElementById('headingzip').textContent = city;  // Or include state: city + ', ' + state
+				document.title = fotdTitle;
+				//window.history.pushState({},"","/");
+				fetchUrl = 'https://www.culvers.com/api/locator/getLocations?lat=' + gpsposition.coords.latitude + '&long=' + gpsposition.coords.longitude + '&radius=40233&limit=10';
+			}
 
-      fetch(fetchUrl).then(function(response) {
-        return response.json();
-      }).then(function(json) {
-        document.querySelector('#fetchtime').innerHTML = "Last updated: " + (new Date()).toLocaleString();
-        let fl = '';
-        json.Collection.Locations.forEach(function(loc) {
-          let addr = loc.Address + ' ' + loc.City + ', ' + loc.State;
-          fl += '<tr>';
-          fl += '<td>';
-          fl += loc.Name;
-          fl += '<br /> ' + closedMessage(loc[dayOfWeekName + 'Close']);
-          fl += '<br /><a href="https://www.google.com/maps/dir//' + addr + '">' + addr + '</a>';
-          fl += '</td>';
-          fl += '<td class="flavor"><img src="' + loc.FlavorImageUrl + '"><br />' + loc.FlavorDay + '</td>';
-          fl += '</tr>';
-        });
-        document.querySelector('#table').innerHTML = fl;
-      });
+			const newFetchUrl = 'https://corsproxy.io/?' + encodeURIComponent(fetchUrl);
 
-      // Run again tomorrow at 6am
-      setTimeout(function() { window.location.reload(); }, nextRunTime());
-    }
+			fetch(newFetchUrl).then(function (response) {
+				return response.json();
+			}).then(function (json) {
+				console.log(json);
+				document.querySelector('#fetchtime').innerHTML = "Last updated: " + (new Date()).toLocaleString();
+				let fl = '';
+				json.data.geofences.forEach(function (loc) {
+					if (!loc.metadata.flavorOfDayName || loc.metadata.flavorOfDayName === '') {
+						console.log('No FotD so skipping location: ' + JSON.stringify(loc));
+					}
+					else {
+						let addr = loc.metadata.street + ' ' + loc.metadata.city + ', ' + loc.metadata.state;
+						fl += '<tr>';
+						fl += '<td>';
+						fl += loc.description;
+						fl += '<br /> ' + closedMessage(JSON.parse(loc.metadata.driveThruHours)[dayOfWeekName.substring(0, 2) + 'C']);
+						fl += '<br /><a href="https://www.google.com/maps/dir//' + addr + '">' + addr + '</a>';
+						fl += '</td>';
+						fl += '<td class="flavor"><a href="https://www.culvers.com/restaurants/' + loc.metadata.slug + '#view-calendar" title="Click to see future flavors"><img src="https://cdn.culvers.com/menu-item-detail/' + loc.metadata.flavorOfDaySlug + '" width="177"><br />' + loc.metadata.flavorOfDayName + '</a></td>';
+						fl += '</tr>';
+					}
+				});
+				document.querySelector('#table').innerHTML = fl;
+				removeWaitCursor();
+			}).catch(() => {
+				removeWaitCursor();
+			});
 
-	document.addEventListener("DOMContentLoaded",
-	function(event) {
-	  const gpsBttn = document.querySelector('#gpsbutton');
-	  if (!!!navigator.geolocation) {
-        gpsBttn.style.display = 'none';
-	  } 
-	  else {
-		gpsBttn.addEventListener("click", loadGeolocation, false);
-	  }       
-
-	  fotdFetch();
-	});
-    </script>
+			// Run again tomorrow at 6am
+			setTimeout(function () { window.location.reload(); }, nextRunTime());
+		}
+		loadGeolocation();
+	</script>
 
 </body>
+
 </html>
