@@ -84,27 +84,17 @@
 			return match ? decodeURIComponent(match[2]) : null;
 		}
 
-		async function fotdFetch(gpsposition) {
+		async function fotdFetch(lat, lon) {
 			document.body.style.cursor = 'wait';
+			document.querySelector('#table').innerHTML = '<tr><td colspan="2">Loading flavors...</td></tr>';
 			const fotdTitle = "Flavor of the Day";
 			const dayOfWeekName = new Date().toLocaleString('default', { weekday: 'long' });
-			let fetchUrl = '';
-
-			// Handle current location logic
-			if (gpsposition) {
-				// In your geolocation success callback:
-				const city = await getCityFromCoords(gpsposition.coords.latitude, gpsposition.coords.longitude);
-				document.getElementById('headingzip').textContent = city;  // Or include state: city + ', ' + state
-				document.title = fotdTitle;
-				//window.history.pushState({},"","/");
-				fetchUrl = 'https://www.culvers.com/api/locator/getLocations?lat=' + gpsposition.coords.latitude + '&long=' + gpsposition.coords.longitude + '&radius=40233&limit=10';
-			}
-
+			const fetchUrl = 'https://www.culvers.com/api/locator/getLocations?lat=' + lat + '&long=' + lon + '&radius=40233&limit=10';
 			const newFetchUrl = 'https://corsproxy.io/?' + encodeURIComponent(fetchUrl);
 
-			fetch(newFetchUrl).then(function (response) {
-				return response.json();
-			}).then(function (json) {
+			try {
+				const response = await fetch(newFetchUrl);
+				const json = await response.json();
 				console.log(json);
 				document.querySelector('#fetchtime').innerHTML = "Last updated: " + (new Date()).toLocaleString();
 				let fl = '';
@@ -126,9 +116,10 @@
 				});
 				document.querySelector('#table').innerHTML = fl;
 				removeWaitCursor();
-			}).catch(() => {
+			} catch (e) {
+				document.querySelector('#table').innerHTML = '<tr><td colspan="2">Error loading flavors. Please try again later.</td></tr>';
 				removeWaitCursor();
-			});
+			}
 
 			// Run again tomorrow at 6am
 			setTimeout(function () { window.location.reload(); }, nextRunTime());
