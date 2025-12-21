@@ -89,7 +89,7 @@
 			// Handle current location logic
 			if (gpsposition) {
 				// In your geolocation success callback:
-                const city = await getCityFromCoords(position.coords.latitude, position.coords.longitude);
+                const city = await getCityFromCoords(gpsposition.coords.latitude, gpsposition.coords.longitude);
                 document.getElementById('headingzip').textContent = city;  // Or include state: city + ', ' + state
 				document.title = fotdTitle;
 				//window.history.pushState({},"","/");
