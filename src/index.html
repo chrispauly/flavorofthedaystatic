@@ -50,13 +50,20 @@
 			return '';
 		}
 
-		async function getCityFromCoords(lat, lon) {
+		async function getLocationDataFromCoords(lat, lon) {
 			try {
-				const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=10&addressdetails=1`);
+				const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1`);
 				const data = await response.json();
-				return data.address.city || data.address.town || data.address.village || 'Unknown location';
+				const address = data.address || {};
+				return {
+					city: address.city || address.town || address.village || 'Unknown location',
+					postalCode: address.postcode || ''
+				};
 			} catch (e) {
-				return 'your current location';
+				return {
+					city: 'your current location',
+					postalCode: ''
+				};
 			}
 		}
 
@@ -69,7 +76,6 @@
 			var now = new Date();
 			var isEarly = (now.getHours() < 6);
 			var next6am = new Date(now.getFullYear(), now.getMonth(), now.getDate() + (isEarly ? 0 : 1), 6);
-			// console.log(next6am);
 			return next6am.getTime() - Date.now();
 		}
 
@@ -84,18 +90,16 @@
 			return match ? decodeURIComponent(match[2]) : null;
 		}
 
-		async function fotdFetch(lat, lon) {
+		async function fotdFetch(locationQuery) {
 			document.body.style.cursor = 'wait';
 			document.querySelector('#table').innerHTML = '<tr><td colspan="2">Loading flavors...</td></tr>';
-			const fotdTitle = "Flavor of the Day";
 			const dayOfWeekName = new Date().toLocaleString('default', { weekday: 'long' });
-			const fetchUrl = 'https://www.culvers.com/api/locator/getLocations?lat=' + lat + '&long=' + lon + '&radius=40233&limit=10';
+			const fetchUrl = 'https://www.culvers.com/api/locator/getLocations?location=' + encodeURIComponent(locationQuery) + '&radius=40233&limit=10';
 			const newFetchUrl = 'https://corsproxy.io/?' + encodeURIComponent(fetchUrl);
 
 			try {
 				const response = await fetch(newFetchUrl);
 				const json = await response.json();
-				console.log(json);
 				document.querySelector('#fetchtime').innerHTML = "Last updated: " + (new Date()).toLocaleString();
 				let fl = '';
 				json.data.geofences.forEach(function (loc) {
@@ -114,26 +118,25 @@
 						fl += '</tr>';
 					}
 				});
-				document.querySelector('#table').innerHTML = fl;
+				document.querySelector('#table').innerHTML = fl || '<tr><td colspan="2">No flavors found for this area.</td></tr>';
 				removeWaitCursor();
 			} catch (e) {
 				document.querySelector('#table').innerHTML = '<tr><td colspan="2">Error loading flavors. Please try again later.</td></tr>';
 				removeWaitCursor();
 			}
 
-			// Run again tomorrow at 6am
 			setTimeout(function () { window.location.reload(); }, nextRunTime());
 		}
 
 		async function init() {
-			const saved = getCookie('fotdLastGPS');
-			let initialLat, initialLon, initialCity;
+			const saved = getCookie('fotdLastLocation');
+			let initialQuery, initialCity;
 
 			if (saved) {
-				[initialLat, initialLon, initialCity] = saved.split(',');
+				[initialQuery, initialCity] = saved.split('|');
 				document.querySelector('#headingzip').innerHTML = initialCity || 'your last location';
 				document.querySelector('#fetchtime').innerHTML = 'Using last known location...';
-				await fotdFetch(initialLat, initialLon);
+				await fotdFetch(initialQuery);
 			} else {
 				document.querySelector('#headingzip').innerHTML = 'locating...';
 			}
@@ -142,14 +145,13 @@
 				navigator.geolocation.getCurrentPosition(async (position) => {
 					const lat = position.coords.latitude;
 					const lon = position.coords.longitude;
-					const city = await getCityFromCoords(lat, lon);
-					const locationKey = `${lat},${lon},${city}`;
-					setCookie('fotdLastGPS', locationKey);
+					const locationData = await getLocationDataFromCoords(lat, lon);
+					const query = locationData.postalCode || `${lat},${lon}`;
+					setCookie('fotdLastLocation', `${query}|${locationData.city}`);
 
-					// If different, refetch
-					if (!saved || initialLat !== lat.toString() || initialLon !== lon.toString()) {
-						document.querySelector('#headingzip').innerHTML = city;
-						await fotdFetch(lat, lon);
+					if (!saved || initialQuery !== query) {
+						document.querySelector('#headingzip').innerHTML = locationData.city;
+						await fotdFetch(query);
 					}
 				}, () => {
 					removeWaitCursor();
@@ -164,7 +166,7 @@
 			}
 		}
 
-		init();		
+		init();
 	</script>
 
 </body>
