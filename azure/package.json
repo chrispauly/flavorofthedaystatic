@@ -1,0 +1,18 @@
+{
+  "name": "cors-proxy",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Azure Function CORS proxy replacement for corsproxy.io",
+  "main": "./src/functions/proxy.js",
+  "scripts": {
+    "start": "func start",
+    "check": "node --check ./src/functions/proxy.js"
+  },
+  "dependencies": {
+    "@azure/functions": "^4.5.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
+

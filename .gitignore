@@ -1,0 +1,17 @@
+# Azure Functions Node.js artifacts
+azure/node_modules/
+azure/local.settings.json
+azure/.env
+azure/.funcignore
+azure/.vscode/
+
+# Optional Azure Fields
+azure/host.json.user
+azure/secrets.json
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Visual Studio Code
+.vscode/
