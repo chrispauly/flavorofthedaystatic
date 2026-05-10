@@ -102,7 +102,13 @@ app.http('proxy', {
     }
 
     const outgoingHeaders = sanitizeRequestHeaders(request.headers);
-    let body;
+
+    // Add browser-like headers to avoid upstream blocking
+    outgoingHeaders.set('User-Agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36');
+    outgoingHeaders.set('Accept', 'application/json, text/plain, */*');
+    outgoingHeaders.set('Accept-Language', 'en-US,en;q=0.9');
+    outgoingHeaders.set('Cache-Control', 'no-cache');
+    outgoingHeaders.set('Pragma', 'no-cache');
 
     if (!['GET', 'HEAD'].includes(request.method)) {
       body = await request.arrayBuffer();
