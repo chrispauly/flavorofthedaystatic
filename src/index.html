@@ -103,11 +103,19 @@
 						console.log('No FotD so skipping location: ' + JSON.stringify(loc));
 					}
 					else {
+						const driveThruHours = loc?.metadata?.driveThruHours;
+						let hours = {};
+						try {
+						    hours = JSON.parse(driveThruHours || '{}');
+						} catch (ex) {
+						    console.warn('Bad driveThruHours for', loc.description, driveThruHours);
+						}
+						
 						let addr = loc.metadata.street + ' ' + loc.metadata.city + ', ' + loc.metadata.state;
 						fl += '<tr>';
 						fl += '<td>';
 						fl += loc.description;
-						fl += '<br /> ' + closedMessage(JSON.parse(loc.metadata.driveThruHours)[dayOfWeekName.substring(0, 2) + 'C']);
+						fl += '<br /> ' + closedMessage(JSON.parse(hours)[dayOfWeekName.substring(0, 2) + 'C']);
 						fl += '<br /><a href="https://www.google.com/maps/dir//' + addr + '">' + addr + '</a>';
 						fl += '</td>';
 						fl += '<td class="flavor"><a href="https://www.culvers.com/restaurants/' + loc.metadata.slug + '#view-calendar" title="Click to see future flavors"><img src="https://cdn.culvers.com/menu-item-detail/' + loc.metadata.flavorOfDaySlug + '" width="177"><br />' + loc.metadata.flavorOfDayName + '</a></td>';
