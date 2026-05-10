@@ -115,7 +115,7 @@
 						fl += '<tr>';
 						fl += '<td>';
 						fl += loc.description;
-						fl += '<br /> ' + closedMessage(JSON.parse(hours)[dayOfWeekName.substring(0, 2) + 'C']);
+						fl += '<br /> ' + closedMessage(hours[dayOfWeekName.substring(0, 2) + 'C']);
 						fl += '<br /><a href="https://www.google.com/maps/dir//' + addr + '">' + addr + '</a>';
 						fl += '</td>';
 						fl += '<td class="flavor"><a href="https://www.culvers.com/restaurants/' + loc.metadata.slug + '#view-calendar" title="Click to see future flavors"><img src="https://cdn.culvers.com/menu-item-detail/' + loc.metadata.flavorOfDaySlug + '" width="177"><br />' + loc.metadata.flavorOfDayName + '</a></td>';
