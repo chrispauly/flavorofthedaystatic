@@ -84,20 +84,44 @@
 			return match ? decodeURIComponent(match[2]) : null;
 		}
 
-		async function fotdFetch(lat, lon) {
-			console.info('fotdFetch starting', { lat, lon });
+		async function fotdFetch(lat, lon, attempt = 0) {
+			console.info('fotdFetch starting', { lat, lon, attempt });
 			document.body.style.cursor = 'wait';
 			document.querySelector('#table').innerHTML = '<tr><td colspan="2">Loading flavors...</td></tr>';
 			const fotdTitle = "Flavor of the Day";
 			const dayOfWeekName = new Date().toLocaleString('default', { weekday: 'long' });
 			const fetchUrl = 'https://www.culvers.com/api/locator/getLocations?lat=' + lat + '&long=' + lon + '&radius=40233&limit=10';
 			const newFetchUrl = 'https://corsproxy-fxn.azurewebsites.net/api/proxy?url=' + encodeURIComponent(fetchUrl);
-			console.info('fotdFetch url', { fetchUrl, newFetchUrl, dayOfWeekName });
+			console.info('fotdFetch url', { fetchUrl, newFetchUrl, dayOfWeekName, attempt });
 
 			try {
 				const response = await fetch(newFetchUrl);
 				console.info('fotdFetch response', { status: response.status, ok: response.ok });
-				const json = await response.json();
+				const raw = await response.text();
+				console.info('fotdFetch raw response', { length: raw.length, raw: raw.slice(0, 1000) });
+				if (!raw.trim()) {
+					if (attempt < 1) {
+						console.warn('fotdFetch empty response body, retrying', { attempt });
+						await new Promise((resolve) => setTimeout(resolve, 500));
+						return fotdFetch(lat, lon, attempt + 1);
+					}
+					console.warn('fotdFetch empty response body after retry');
+					document.querySelector('#table').innerHTML = '<tr><td colspan="2">No flavor data returned yet. Please try again later.</td></tr>';
+					removeWaitCursor();
+					return false;
+				}
+				let json;
+				try {
+					json = JSON.parse(raw);
+				} catch (parseError) {
+					console.warn('fotdFetch JSON parse failed', parseError, raw.slice(0, 1000));
+					if (attempt < 1) {
+						console.warn('retrying after parse failure', { attempt });
+						await new Promise((resolve) => setTimeout(resolve, 500));
+						return fotdFetch(lat, lon, attempt + 1);
+					}
+					throw parseError;
+				}
 				console.info('fotdFetch json', json);
 				document.querySelector('#fetchtime').innerHTML = "Last updated: " + (new Date()).toLocaleString();
 				let fl = '';
@@ -128,10 +152,12 @@
 				});
 				document.querySelector('#table').innerHTML = fl;
 				removeWaitCursor();
+				return true;
 			} catch (e) {
 				console.error('fotdFetch error', e);
 				document.querySelector('#table').innerHTML = '<tr><td colspan="2">Error loading flavors. Please try again later.</td></tr>';
 				removeWaitCursor();
+				return false;
 			}
 
 			// Run again tomorrow at 6am
@@ -142,6 +168,7 @@
 			console.info('init starting');
 			const saved = getCookie('fotdLastGPS');
 			let initialLat, initialLon, initialCity;
+			let savedFetchFailed = false;
 			console.info('saved location cookie', saved);
 
 			if (saved) {
@@ -149,7 +176,7 @@
 				console.info('init using saved location', { initialLat, initialLon, initialCity });
 				document.querySelector('#headingzip').innerHTML = initialCity || 'your last location';
 				document.querySelector('#fetchtime').innerHTML = 'Using last known location...';
-				await fotdFetch(initialLat, initialLon);
+				savedFetchFailed = !(await fotdFetch(initialLat, initialLon));
 			} else {
 				document.querySelector('#headingzip').innerHTML = 'locating...';
 			}
@@ -162,8 +189,8 @@
 					const locationKey = `${lat},${lon},${city}`;
 					setCookie('fotdLastGPS', locationKey);
 
-					// If different, refetch
-					if (!saved || initialLat !== lat.toString() || initialLon !== lon.toString()) {
+					// If different, refetch, or if the saved request failed
+					if (!saved || savedFetchFailed || initialLat !== lat.toString() || initialLon !== lon.toString()) {
 						document.querySelector('#headingzip').innerHTML = city;
 						await fotdFetch(lat, lon);
 					}
