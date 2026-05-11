@@ -28,8 +28,10 @@ function sanitizeRequestHeaders(originalHeaders) {
   const outgoing = new Headers();
 
   for (const [key, value] of originalHeaders.entries()) {
-    if (HOP_BY_HOP_HEADERS.has(key.toLowerCase())) continue;
-    if (key.toLowerCase().startsWith('x-forwarded-')) continue;
+    const lowerKey = key.toLowerCase();
+    if (HOP_BY_HOP_HEADERS.has(lowerKey)) continue;
+    if (lowerKey.startsWith('x-forwarded-')) continue;
+    if (lowerKey === 'origin' || lowerKey === 'referer') continue;
 
     outgoing.set(key, value);
   }
@@ -64,6 +66,9 @@ app.http('proxy', {
     }
 
     const targetUrl = request.query.get('url');
+
+    // TEMP: Test with a known working URL
+    // const targetUrl = 'https://httpbin.org/get';
 
     if (!targetUrl) {
       return {
@@ -103,18 +108,17 @@ app.http('proxy', {
 
     const outgoingHeaders = sanitizeRequestHeaders(request.headers);
 
-    // Add browser-like headers to avoid upstream blocking
-    outgoingHeaders.set('User-Agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36');
-    outgoingHeaders.set('Accept', 'application/json, text/plain, */*');
-    outgoingHeaders.set('Accept-Language', 'en-US,en;q=0.9');
-    outgoingHeaders.set('Cache-Control', 'no-cache');
-    outgoingHeaders.set('Pragma', 'no-cache');
-
     if (!['GET', 'HEAD'].includes(request.method)) {
       body = await request.arrayBuffer();
     }
 
     try {
+      context.log('Proxy upstream fetch', {
+        url: parsedUrl.href,
+        method: request.method,
+        headers: Array.from(outgoingHeaders.entries()).map(([k, v]) => `${k}: ${v}`)
+      });
+
       const upstreamResponse = await fetch(parsedUrl, {
         method: request.method,
         headers: outgoingHeaders,
@@ -122,6 +126,7 @@ app.http('proxy', {
         redirect: 'follow'
       });
 
+      context.log('Upstream response status', upstreamResponse.status);
       const responseHeaders = sanitizeResponseHeaders(upstreamResponse.headers);
 
       // 🔥 still required even for streaming
@@ -142,7 +147,7 @@ app.http('proxy', {
         body: upstreamResponse.body
       };
     } catch (error) {
-      context.error('Proxy request failed', error);
+      context.error('Proxy request failed', error.message, error.stack);
       return {
         status: 502,
         headers: {
