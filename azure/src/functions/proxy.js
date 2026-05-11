@@ -108,6 +108,7 @@ app.http('proxy', {
 
     const outgoingHeaders = sanitizeRequestHeaders(request.headers);
 
+    let body;
     if (!['GET', 'HEAD'].includes(request.method)) {
       body = await request.arrayBuffer();
     }
